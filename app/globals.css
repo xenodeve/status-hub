@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
+/*
+ * One theme, dark, on purpose.
+ *
+ * This is a dashboard people leave open on a second monitor all day, and it is
+ * opened most often at the moment something has gone wrong. Supporting a light
+ * theme as well means every status colour has to work on two backgrounds — and
+ * the first render of this page shipped light-grey text on a light background
+ * because the CSS said one thing and the components assumed the other.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,15 +22,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
 }

@@ -1,69 +1,171 @@
-import Image from "next/image";
+import { loadBoard, type ComponentView } from "@/lib/queries";
+import { supabaseConfigured } from "@/lib/supabase";
+import { overallStatus, type DisplayStatus } from "@/lib/view";
+import { LiveRefresh } from "./live-refresh";
 
-export default function Home() {
+// The whole point is what is true right now, so nothing here is prerendered.
+export const dynamic = "force-dynamic";
+
+const RANGES = [
+  { days: 90, label: "90 days" },
+  { days: 180, label: "6 months" },
+  { days: 365, label: "1 year" },
+] as const;
+
+/** No colour is a claim. Grey means "we do not know", and it is never green. */
+const BAR_COLOUR: Record<string, string> = {
+  operational: "bg-emerald-500",
+  degraded: "bg-amber-500",
+  down: "bg-red-500",
+  misconfigured: "bg-neutral-500",
+  unknown: "bg-neutral-500",
+};
+
+const BANNER: Record<DisplayStatus, { text: string; className: string }> = {
+  operational: { text: "All systems operational", className: "bg-emerald-500/10 text-emerald-300 ring-emerald-500/30" },
+  degraded: { text: "Degraded performance", className: "bg-amber-500/10 text-amber-300 ring-amber-500/30" },
+  down: { text: "Major outage", className: "bg-red-500/10 text-red-300 ring-red-500/30" },
+  misconfigured: { text: "We cannot check — our credentials are wrong", className: "bg-neutral-500/10 text-neutral-300 ring-neutral-500/30" },
+  unknown: { text: "We cannot reach some sources", className: "bg-neutral-500/10 text-neutral-300 ring-neutral-500/30" },
+  stale: { text: "Not currently checking — this page may be out of date", className: "bg-neutral-500/10 text-neutral-300 ring-neutral-500/30" },
+};
+
+function Bars({ component }: { component: ComponentView }) {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="flex gap-px overflow-hidden" aria-label={`${component.name} history`}>
+      {component.bars.map((bar) => (
+        <span
+          key={bar.day}
+          title={bar.status ? `${bar.day} — ${bar.status}` : `${bar.day} — no data, we did not check`}
+          className={`h-8 min-w-0 flex-1 rounded-[1px] ${
+            bar.status ? BAR_COLOUR[bar.status] : "bg-neutral-800"
+          }`}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      ))}
     </div>
+  );
+}
+
+function ComponentRow({ component }: { component: ComponentView }) {
+  const label: Record<DisplayStatus, string> = {
+    operational: "Operational",
+    degraded: "Degraded",
+    down: "Down",
+    misconfigured: "Misconfigured",
+    unknown: "Unknown",
+    stale: "Stale",
+  };
+
+  return (
+    <li className="border-t border-neutral-800 px-5 py-4 first:border-t-0">
+      <div className="mb-2 flex items-baseline justify-between gap-4">
+        <div className="min-w-0">
+          <span className="font-medium text-neutral-100">{component.name}</span>
+          {component.variant && component.variant !== component.name && (
+            <span className="ml-2 text-xs text-neutral-500">{component.variant}</span>
+          )}
+        </div>
+        <span className="shrink-0 text-sm text-neutral-400">
+          {component.latencyMs !== null && <span className="mr-3 tabular-nums">{component.latencyMs} ms</span>}
+          {label[component.status]}
+        </span>
+      </div>
+      <Bars component={component} />
+    </li>
+  );
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  // Next 16 removed synchronous access to request APIs.
+  searchParams: Promise<{ range?: string }>;
+}) {
+  if (!supabaseConfigured) {
+    return (
+      <main className="mx-auto max-w-3xl px-6 py-20">
+        <h1 className="text-lg font-medium text-neutral-100">Status Hub is not configured</h1>
+        <p className="mt-2 text-sm text-neutral-400">
+          Set <code className="text-neutral-300">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+          <code className="text-neutral-300">NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code>. See{" "}
+          <code className="text-neutral-300">.env.example</code>.
+        </p>
+      </main>
+    );
+  }
+
+  const { range } = await searchParams;
+  const days = RANGES.find((r) => String(r.days) === range)?.days ?? 90;
+  const board = await loadBoard(days);
+
+  const overall = overallStatus(board.components.map((c) => c.status));
+  const banner = BANNER[overall];
+
+  const bySource = new Map<string, ComponentView[]>();
+  for (const component of board.components) {
+    bySource.set(component.sourceName, [...(bySource.get(component.sourceName) ?? []), component]);
+  }
+
+  return (
+    <main className="mx-auto max-w-3xl px-6 py-12">
+      <header className="mb-8 flex items-baseline justify-between gap-4">
+        <h1 className="text-xl font-semibold tracking-tight text-neutral-100">Status Hub</h1>
+        <LiveRefresh />
+      </header>
+
+      <div className={`mb-8 rounded-lg px-4 py-3 text-sm ring-1 ${banner.className}`}>{banner.text}</div>
+
+      {board.components.length === 0 ? (
+        <p className="rounded-lg border border-neutral-800 px-5 py-8 text-center text-sm text-neutral-500">
+          Nothing has been checked yet. The collector writes the first reading on its next run.
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {[...bySource].map(([source, components]) => (
+            <section key={source} className="rounded-lg border border-neutral-800">
+              <h2 className="border-b border-neutral-800 px-5 py-3 text-sm font-medium text-neutral-300">
+                {source}
+              </h2>
+              <ul>
+                {components.map((component) => (
+                  <ComponentRow key={component.id} component={component} />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
+
+      <nav className="mt-6 flex gap-4 text-sm">
+        {RANGES.map((r) => (
+          <a
+            key={r.days}
+            href={`/?range=${r.days}`}
+            className={r.days === days ? "text-neutral-100" : "text-neutral-500 hover:text-neutral-300"}
+          >
+            {r.label}
+          </a>
+        ))}
+      </nav>
+
+      {board.incidents.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-sm font-medium text-neutral-300">Recent incidents</h2>
+          <ul className="space-y-3 text-sm">
+            {board.incidents.map((incident) => (
+              <li key={incident.id} className="border-l-2 border-neutral-700 pl-3">
+                <div className="text-neutral-200">{incident.title}</div>
+                <div className="text-xs text-neutral-500">
+                  {incident.componentName} · {incident.severity} ·{" "}
+                  {incident.origin === "vendor" ? "reported by the vendor" : "detected by us"} ·{" "}
+                  {new Date(incident.startedAt).toISOString().replace("T", " ").slice(0, 16)}
+                  {incident.endedAt ? "" : " · ongoing"}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </main>
   );
 }
