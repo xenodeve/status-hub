@@ -1,4 +1,5 @@
 import { uptimePct } from "./rollup";
+import { totalCounts } from "./totals";
 import { createReadClient } from "./supabase";
 import type { Status } from "./status";
 import { buildBars, dayRange, effectiveStatus, type Bar, type DisplayStatus, type RollupRow } from "./view";
@@ -102,18 +103,7 @@ export async function loadBoard(days: number, now = new Date()): Promise<Board> 
       const state = c.component_state;
       const rows = byComponent.get(c.id) ?? [];
 
-      // Uptime over the whole visible range, from the counters the collector
-      // accumulated — the same arithmetic the rollup module defines.
-      const totals = rows.reduce(
-        (acc, r) => ({
-          operational: acc.operational + r.operational_count,
-          degraded: acc.degraded + r.degraded_count,
-          down: acc.down + r.down_count,
-        }),
-        { operational: 0, degraded: 0, down: 0 },
-      );
-
-      const bars: RollupRow[] = rows.map((r) => ({ day: r.day, worstStatus: r.worst_status }));
+      const history: RollupRow[] = rows.map((r) => ({ day: r.day, worstStatus: r.worst_status }));
 
       return {
         id: c.id,
@@ -124,8 +114,10 @@ export async function loadBoard(days: number, now = new Date()): Promise<Board> 
           ? effectiveStatus({ status: state.status, lastCheckedAt: state.last_checked_at }, now, MAX_GAP_MS)
           : "stale",
         latencyMs: state?.latency_ms ?? null,
-        uptimePct: uptimePct(totals),
-        bars: buildBars(bars, days, now, keys),
+        // Over the whole visible range, from the counters the collector
+        // accumulated — the arithmetic the rollup module defines.
+        uptimePct: uptimePct(totalCounts(rows)),
+        bars: buildBars(history, days, now, keys),
       };
     }),
     incidents: ((incidents.data ?? []) as unknown as IncidentDbRow[]).map((i) => ({

@@ -52,11 +52,14 @@ export function readGcp(payload: unknown, target: GcpTarget, now = new Date()): 
 
   // The feed carries every incident Google has ever published for these
   // products. Only what is open, or has just closed, is ours to record.
-  const current = mine.filter(
-    (i) =>
-      !i.end ||
-      now.getTime() - new Date(String(i.end)).getTime() < CLOSED_WINDOW_MS,
-  );
+  const current = mine.filter((i) => {
+    if (!i.end) return true;
+    const ended = new Date(String(i.end)).getTime();
+    // An end we cannot parse is not evidence the incident is old. Keep it and
+    // let the record show something odd, rather than dropping it silently.
+    if (Number.isNaN(ended)) return true;
+    return now.getTime() - ended < CLOSED_WINDOW_MS;
+  });
 
   const status = open.reduce<Status>(
     (acc, i) => worst(acc, IMPACT[String(i.status_impact)] ?? "unknown"),

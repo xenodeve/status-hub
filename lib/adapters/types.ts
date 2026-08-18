@@ -28,8 +28,21 @@ export type VendorIncident = {
   componentKeys: string[];
 };
 
+/**
+ * A component we know exists but did not check this run. It is registered so
+ * its name and first-seen date are recorded, and nothing else is written.
+ *
+ * This is deliberately NOT a ComponentReading. Giving it a status would mean
+ * choosing between a green we did not observe and a grey that writes a sample
+ * row on every check forever — the first is a lie, the second is the storage
+ * blowout the rollup design exists to prevent.
+ */
+export type DiscoveredComponent = { key: string; name: string; variant?: string };
+
 export type SourceReading = {
   components: ComponentReading[];
+  /** Known to exist, not checked. Registered only. */
+  discovered?: DiscoveredComponent[];
   incidents: VendorIncident[];
 };
 

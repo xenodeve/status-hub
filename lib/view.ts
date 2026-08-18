@@ -68,7 +68,14 @@ export function buildBars(rollups: RollupRow[], days: number, today: Date, keys?
  * sits just above `unknown`: both mean we cannot see, and neither outranks a
  * real outage.
  */
-const DISPLAY_SEVERITY: Record<DisplayStatus, number> = { ...SEVERITY, stale: 1.5 };
+const DISPLAY_SEVERITY: Record<DisplayStatus, number> = {
+  operational: 0,
+  unknown: 1,
+  stale: 2,
+  misconfigured: 3,
+  degraded: 4,
+  down: 5,
+};
 
 export function overallStatus(statuses: DisplayStatus[]): DisplayStatus {
   // Nothing to report is not the same as everything being fine.

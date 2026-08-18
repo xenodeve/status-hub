@@ -1,5 +1,6 @@
 import { loadBoard, type ComponentView } from "@/lib/queries";
 import { supabaseConfigured } from "@/lib/supabase";
+import type { Status } from "@/lib/status";
 import { overallStatus, type DisplayStatus } from "@/lib/view";
 import { LiveRefresh } from "./live-refresh";
 
@@ -12,6 +13,22 @@ const RANGES = [
   { days: 365, label: "1 year" },
 ] as const;
 
+// The three greys all mean "we cannot see". They stay identical on purpose:
+// a reader who could tell them apart by colour would be reading a distinction
+// that is not there.
+const GREY_BANNER = "bg-neutral-500/10 text-neutral-300 ring-neutral-500/30";
+
+/** The history strip is SVG, so it needs the colours as values, not classes. */
+const FILL: Record<Status, string> = {
+  operational: "#10b981",
+  degraded: "#f59e0b",
+  down: "#ef4444",
+  misconfigured: "#737373",
+  unknown: "#737373",
+};
+
+const NO_DATA_FILL = "#262626";
+
 /**
  * One table for the whole vocabulary. Three parallel maps meant a new status
  * had to be added in three places, and the one that was missed would render
@@ -19,40 +36,34 @@ const RANGES = [
  *
  * Tailwind needs literal class strings, so these cannot be built from a token.
  */
-const STYLE: Record<DisplayStatus, { bar: string; banner: string; label: string; headline: string }> = {
+const STYLE: Record<DisplayStatus, { banner: string; label: string; headline: string }> = {
   operational: {
-    bar: "bg-emerald-500",
     banner: "bg-emerald-500/10 text-emerald-300 ring-emerald-500/30",
     label: "Operational",
     headline: "All systems operational",
   },
   degraded: {
-    bar: "bg-amber-500",
     banner: "bg-amber-500/10 text-amber-300 ring-amber-500/30",
     label: "Degraded",
     headline: "Degraded performance",
   },
   down: {
-    bar: "bg-red-500",
     banner: "bg-red-500/10 text-red-300 ring-red-500/30",
     label: "Down",
     headline: "Major outage",
   },
   misconfigured: {
-    bar: "bg-neutral-500",
-    banner: "bg-neutral-500/10 text-neutral-300 ring-neutral-500/30",
+    banner: GREY_BANNER,
     label: "Misconfigured",
     headline: "We cannot check — our credentials are wrong",
   },
   unknown: {
-    bar: "bg-neutral-500",
-    banner: "bg-neutral-500/10 text-neutral-300 ring-neutral-500/30",
+    banner: GREY_BANNER,
     label: "Unknown",
     headline: "We cannot reach some sources",
   },
   stale: {
-    bar: "bg-neutral-500",
-    banner: "bg-neutral-500/10 text-neutral-300 ring-neutral-500/30",
+    banner: GREY_BANNER,
     label: "Stale",
     headline: "Not currently checking — this page may be out of date",
   },
@@ -74,17 +85,30 @@ function ComponentRow({ component }: { component: ComponentView }) {
         </span>
       </div>
 
-      <div className="flex gap-px overflow-hidden" aria-label={`${component.name} history`}>
-        {component.bars.map((bar) => (
-          <span
-            key={bar.day}
-            title={bar.status ? `${bar.day} — ${bar.status}` : `${bar.day} — no data, we did not check`}
-            // No colour is a claim. Grey means "we do not know"; a day with no
-            // row is fainter still, and never green.
-            className={`h-8 min-w-0 flex-1 rounded-[1px] ${bar.status ? STYLE[bar.status].bar : "bg-neutral-800"}`}
-          />
-        ))}
-      </div>
+      {/*
+        One SVG rather than one element per day. At 34 components and a
+        one-year range that was 12,410 spans, each carrying a class string and
+        a title — measured at 4 MB of HTML and 13 s to render. Here the strip
+        is one background rect plus a rect only for days that have data, so an
+        empty history costs two nodes instead of 365.
+      */}
+      <svg
+        viewBox={`0 0 ${component.bars.length} 10`}
+        preserveAspectRatio="none"
+        className="h-8 w-full"
+        role="img"
+        aria-label={`${component.name}: ${component.uptimePct === null ? "no uptime data" : `${component.uptimePct.toFixed(2)} % uptime`} over the last ${component.bars.length} days`}
+      >
+        {/* A day with no row is fainter than grey, and never green. */}
+        <rect x="0" y="0" width={component.bars.length} height="10" fill={NO_DATA_FILL} />
+        {component.bars.map((bar, i) =>
+          bar.status ? (
+            <rect key={bar.day} x={i} y="0" width="0.85" height="10" fill={FILL[bar.status]}>
+              <title>{`${bar.day} — ${bar.status}`}</title>
+            </rect>
+          ) : null,
+        )}
+      </svg>
 
       <div className="mt-1 flex justify-between text-xs text-neutral-600">
         <span>{component.bars[0]?.day}</span>

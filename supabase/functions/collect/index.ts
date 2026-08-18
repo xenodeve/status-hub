@@ -10,7 +10,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { readGcp } from "./_lib/adapters/gcp.ts";
 import { readHealth, readModels, readReadiness } from "./_lib/adapters/litellm.ts";
 import { readStatuspage } from "./_lib/adapters/statuspage.ts";
-import type { ComponentReading, SourceReading } from "./_lib/adapters/types.ts";
+import type { ComponentReading, DiscoveredComponent, SourceReading } from "./_lib/adapters/types.ts";
 import { transition, type ComponentState } from "./_lib/collector.ts";
 import { addSample, emptyRollup } from "./_lib/rollup.ts";
 import { classify, type CheckOutcome, type Status } from "./_lib/status.ts";
@@ -171,19 +171,17 @@ async function readSource(source: { id: string; adapter: string; config: Json })
     }
 
     return {
-      components: [
-        gateway,
-        ...readModels(parse(listing.body)).map((m) => ({
-          key: m.key,
-          name: m.name,
-          // It appeared in a listing. That is not the same as having answered,
-          // and calling it operational would be exactly the false green this
-          // project exists to avoid. Grey until something actually probes it.
-          status: "unknown" as Status,
-          latencyMs: null,
-          detail: m.variant,
-        })),
-      ],
+      components: [gateway],
+      // A model in the listing is known to exist. It has not answered, so it
+      // gets no reading at all: `operational` would be a green nobody
+      // observed, and `unknown` would write a check_samples row on every
+      // run forever, which is the storage blowout the rollup design exists
+      // to prevent. It is registered and left alone until something probes it.
+      discovered: readModels(parse(listing.body)).map((m) => ({
+        key: m.key,
+        name: m.name,
+        variant: m.variant,
+      })),
       incidents: [],
     };
   }
@@ -193,6 +191,50 @@ async function readSource(source: { id: string; adapter: string; config: Json })
     { kind: "error", latencyMs: 0, message: "no adapter" },
     `no adapter for ${source.adapter}`,
   );
+}
+
+type Db = ReturnType<typeof createClient>;
+
+/**
+ * Find or create the component row. Registration is all this does — the
+ * caller decides whether anything was actually checked.
+ *
+ * A component is never deleted when it stops appearing; `retired_at` is set
+ * elsewhere, because a withdrawn model's history is the most useful history
+ * there is.
+ */
+async function registerComponent(
+  db: Db,
+  sourceId: string,
+  component: DiscoveredComponent,
+  now: Date,
+): Promise<number | undefined> {
+  const { data: existing } = await db
+    .from("components")
+    .select("id, variant")
+    .eq("source_id", sourceId)
+    .eq("key", component.key)
+    .maybeSingle();
+
+  if (!existing) {
+    const { data: created } = await db
+      .from("components")
+      .insert({
+        source_id: sourceId,
+        key: component.key,
+        name: component.name,
+        variant: component.variant ?? null,
+      })
+      .select("id")
+      .single();
+    return created?.id as number | undefined;
+  }
+
+  await db
+    .from("components")
+    .update({ last_seen_at: now.toISOString(), variant: component.variant ?? existing.variant })
+    .eq("id", existing.id);
+  return existing.id as number;
 }
 
 Deno.serve(async () => {
@@ -217,29 +259,12 @@ Deno.serve(async () => {
     const { source, reading } = result.value;
 
     for (const component of reading.components) {
-      // Discovery: a model we have not seen becomes a component; one that
-      // disappears is retired elsewhere, never deleted.
-      const { data: existing } = await db
-        .from("components")
-        .select("id, name, variant")
-        .eq("source_id", source.id)
-        .eq("key", component.key)
-        .maybeSingle();
-
-      let componentId = existing?.id as number | undefined;
-      if (!componentId) {
-        const { data: created } = await db
-          .from("components")
-          .insert({ source_id: source.id, key: component.key, name: component.name, variant: component.detail })
-          .select("id")
-          .single();
-        componentId = created?.id as number | undefined;
-      } else {
-        await db
-          .from("components")
-          .update({ last_seen_at: now.toISOString(), variant: component.detail ?? existing?.variant })
-          .eq("id", componentId);
-      }
+      const componentId = await registerComponent(
+        db,
+        source.id,
+        { key: component.key, name: component.name, variant: component.detail },
+        now,
+      );
       if (!componentId) continue;
 
       const { data: stateRow } = await db
@@ -351,6 +376,14 @@ Deno.serve(async () => {
       });
 
       summary[`${source.id}/${component.key}`] = component.status;
+    }
+
+    // Known to exist, not checked. Registered so the name and first-seen date
+    // are on record, and deliberately given no state, no sample and no rollup
+    // row — a day we did not check must stay absent from the history.
+    for (const found of reading.discovered ?? []) {
+      await registerComponent(db, source.id, found, now);
+      summary[`${source.id}/${found.key}`] = "registered";
     }
 
     // Vendor incidents are recorded under their own id so re-reading the feed
