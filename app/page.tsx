@@ -72,11 +72,17 @@ const STYLE: Record<DisplayStatus, { banner: string; label: string; headline: st
 function ComponentRow({ component }: { component: ComponentView }) {
   return (
     <li className="border-t border-neutral-800 px-5 py-4 first:border-t-0">
-      <div className="mb-2 flex items-baseline justify-between gap-4">
+      {/*
+        Stacked on a phone, one line from `sm` up. Side by side at 390 px the
+        variant string pushed the name into a second line and then wrapped
+        itself onto a third — and a status page is opened on a phone precisely
+        when something has gone wrong.
+      */}
+      <div className="mb-2 flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <span className="font-medium text-neutral-100">{component.name}</span>
+          <span className="font-medium break-words text-neutral-100">{component.name}</span>
           {component.variant && component.variant !== component.name && (
-            <span className="ml-2 text-xs text-neutral-500">{component.variant}</span>
+            <span className="ml-2 text-xs break-all text-neutral-500">{component.variant}</span>
           )}
         </div>
         <span className="shrink-0 text-sm text-neutral-400">
