@@ -1,0 +1,15 @@
+* text=auto eol=lf
+
+# shell scripts must stay LF — CRLF makes bash fail with a bare \r error
+.githooks/*     text eol=lf
+.claude/hooks/* text eol=lf
+*.sh            text eol=lf
+
+# cmd launcher is the one file Windows needs CRLF for
+*.cmd           text eol=crlf
+
+# binary
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
