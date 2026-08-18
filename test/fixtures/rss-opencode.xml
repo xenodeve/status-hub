@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+<title>openCode Updates</title>
+<description>Status Page lets you see real-time information about the status of our services.</description>
+<link>http://status.opencode.de</link>
+<atom:link href="http://status.opencode.de/rss" rel="self" type="application/rss+xml" />
+
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/87c81cdd-253e-4422-ab1c-cd677b4ed5fb</link>
+<guid>http://status.opencode.de/incidents/87c81cdd-253e-4422-ab1c-cd677b4ed5fb</guid>
+<pubDate>Tue, 18 Aug 2026 10:40:14 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/df079cbc-748c-488c-8e1e-80f296dea941</link>
+<guid>http://status.opencode.de/incidents/df079cbc-748c-488c-8e1e-80f296dea941</guid>
+<pubDate>Tue, 18 Aug 2026 10:29:41 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/84705aef-a2f5-4ba4-89b6-a3dd69b4444a</link>
+<guid>http://status.opencode.de/incidents/84705aef-a2f5-4ba4-89b6-a3dd69b4444a</guid>
+<pubDate>Tue, 18 Aug 2026 09:28:18 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/2e72508a-3c67-4501-b317-ee928d9abaa2</link>
+<guid>http://status.opencode.de/incidents/2e72508a-3c67-4501-b317-ee928d9abaa2</guid>
+<pubDate>Tue, 18 Aug 2026 08:46:41 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/94bfec96-ade7-46fd-ba70-18da385f9d72</link>
+<guid>http://status.opencode.de/incidents/94bfec96-ade7-46fd-ba70-18da385f9d72</guid>
+<pubDate>Tue, 18 Aug 2026 08:30:19 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/56a0969e-3854-4b26-8d54-517feb7f05de</link>
+<guid>http://status.opencode.de/scheduled-events/56a0969e-3854-4b26-8d54-517feb7f05de</guid>
+<pubDate>Tue, 18 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/e6521a8e-2ec7-44bb-b9c3-6fdd4fafe45b</link>
+<guid>http://status.opencode.de/incidents/e6521a8e-2ec7-44bb-b9c3-6fdd4fafe45b</guid>
+<pubDate>Tue, 18 Aug 2026 07:41:11 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/58ff0f65-c210-4145-95b1-b3a1301f7ff9</link>
+<guid>http://status.opencode.de/incidents/58ff0f65-c210-4145-95b1-b3a1301f7ff9</guid>
+<pubDate>Mon, 17 Aug 2026 16:00:03 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/04f4c5c6-393c-4900-a753-35c49ce5307c</link>
+<guid>http://status.opencode.de/incidents/04f4c5c6-393c-4900-a753-35c49ce5307c</guid>
+<pubDate>Mon, 17 Aug 2026 12:13:02 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/19d78511-bc49-4d4f-98c7-18c975c06962</link>
+<guid>http://status.opencode.de/scheduled-events/19d78511-bc49-4d4f-98c7-18c975c06962</guid>
+<pubDate>Mon, 17 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/b6c472e1-0596-4365-99e9-3ddc4d705b64</link>
+<guid>http://status.opencode.de/incidents/b6c472e1-0596-4365-99e9-3ddc4d705b64</guid>
+<pubDate>Mon, 17 Aug 2026 07:39:41 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/8bc50121-9ea7-49bf-aacd-10e03e73a885</link>
+<guid>http://status.opencode.de/incidents/8bc50121-9ea7-49bf-aacd-10e03e73a885</guid>
+<pubDate>Mon, 17 Aug 2026 05:23:45 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/69282dd1-21d7-4a7c-a7c8-01b5f23babb1</link>
+<guid>http://status.opencode.de/scheduled-events/69282dd1-21d7-4a7c-a7c8-01b5f23babb1</guid>
+<pubDate>Sun, 16 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/62cb1264-5b26-4fe1-83d9-b9cbfc03c408</link>
+<guid>http://status.opencode.de/scheduled-events/62cb1264-5b26-4fe1-83d9-b9cbfc03c408</guid>
+<pubDate>Sat, 15 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/c566cea6-0c3c-4e97-96b6-dffcb83e19fd</link>
+<guid>http://status.opencode.de/incidents/c566cea6-0c3c-4e97-96b6-dffcb83e19fd</guid>
+<pubDate>Fri, 14 Aug 2026 13:27:18 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: openCode discourse is offline]]></title>
+<description><![CDATA[openCode discourse is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/01fb5a1b-61b9-41e2-a19a-25b4528d206c</link>
+<guid>http://status.opencode.de/incidents/01fb5a1b-61b9-41e2-a19a-25b4528d206c</guid>
+<pubDate>Fri, 14 Aug 2026 08:23:03 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/1dcfe1d2-13d5-452c-b17f-b38cc783a7c8</link>
+<guid>http://status.opencode.de/scheduled-events/1dcfe1d2-13d5-452c-b17f-b38cc783a7c8</guid>
+<pubDate>Fri, 14 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/ab4ad79b-5a23-4177-afca-0be3b37051e2</link>
+<guid>http://status.opencode.de/scheduled-events/ab4ad79b-5a23-4177-afca-0be3b37051e2</guid>
+<pubDate>Thu, 13 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/90e1aa38-9117-4f3c-939e-6a4d2659f2ed</link>
+<guid>http://status.opencode.de/scheduled-events/90e1aa38-9117-4f3c-939e-6a4d2659f2ed</guid>
+<pubDate>Wed, 12 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/c43bdc44-21a6-4a08-a65d-432b7c79e849</link>
+<guid>http://status.opencode.de/scheduled-events/c43bdc44-21a6-4a08-a65d-432b7c79e849</guid>
+<pubDate>Tue, 11 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/729ec0b5-064c-4310-8427-63e7c553215b</link>
+<guid>http://status.opencode.de/scheduled-events/729ec0b5-064c-4310-8427-63e7c553215b</guid>
+<pubDate>Mon, 10 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/e945e7d7-e3ea-41f1-b725-c84f62da608b</link>
+<guid>http://status.opencode.de/incidents/e945e7d7-e3ea-41f1-b725-c84f62da608b</guid>
+<pubDate>Sun, 09 Aug 2026 12:55:13 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/a7156f82-e17c-4155-bf8b-442ae432dbc5</link>
+<guid>http://status.opencode.de/scheduled-events/a7156f82-e17c-4155-bf8b-442ae432dbc5</guid>
+<pubDate>Sun, 09 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/b13d880f-b8a8-4588-a478-b96abbf6cf1c</link>
+<guid>http://status.opencode.de/incidents/b13d880f-b8a8-4588-a478-b96abbf6cf1c</guid>
+<pubDate>Sun, 09 Aug 2026 07:12:32 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/db1076b2-b4cd-4319-b841-90cedae3f552</link>
+<guid>http://status.opencode.de/scheduled-events/db1076b2-b4cd-4319-b841-90cedae3f552</guid>
+<pubDate>Sat, 08 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/21a393a6-15f6-48b6-9b9b-8eec6411b11f</link>
+<guid>http://status.opencode.de/incidents/21a393a6-15f6-48b6-9b9b-8eec6411b11f</guid>
+<pubDate>Fri, 07 Aug 2026 16:16:48 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/4ad8c1e4-d603-41e8-81b9-d80ce0bab1fd</link>
+<guid>http://status.opencode.de/scheduled-events/4ad8c1e4-d603-41e8-81b9-d80ce0bab1fd</guid>
+<pubDate>Fri, 07 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/ec22382e-9bcd-4c51-8238-168688fe9765</link>
+<guid>http://status.opencode.de/incidents/ec22382e-9bcd-4c51-8238-168688fe9765</guid>
+<pubDate>Thu, 06 Aug 2026 22:59:22 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/56718371-016c-4ad2-bec3-5c5609934291</link>
+<guid>http://status.opencode.de/scheduled-events/56718371-016c-4ad2-bec3-5c5609934291</guid>
+<pubDate>Thu, 06 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Incident: DevGuard API is offline]]></title>
+<description><![CDATA[DevGuard API is currently offline.]]></description>
+<link>http://status.opencode.de/incidents/2085b046-30cd-4fb5-be58-e1d3e7880fea</link>
+<guid>http://status.opencode.de/incidents/2085b046-30cd-4fb5-be58-e1d3e7880fea</guid>
+<pubDate>Wed, 05 Aug 2026 23:01:42 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/4652e4c9-b6d1-48a5-a46b-a3128349fc81</link>
+<guid>http://status.opencode.de/scheduled-events/4652e4c9-b6d1-48a5-a46b-a3128349fc81</guid>
+<pubDate>Wed, 05 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+<item>
+<title><![CDATA[Scheduled Maintenance: openCode OOSH]]></title>
+<description><![CDATA[opencode out of service hours. Past 17:00 is a general patch window with only minor interruptions. Major interruptions are announced separately.]]></description>
+<link>http://status.opencode.de/scheduled-events/6d0a8847-5c7b-41fe-a3d8-2567e572b13e</link>
+<guid>http://status.opencode.de/scheduled-events/6d0a8847-5c7b-41fe-a3d8-2567e572b13e</guid>
+<pubDate>Tue, 04 Aug 2026 08:00:00 GMT</pubDate>
+</item>
+</channel>
+</rss>
