@@ -35,6 +35,7 @@ an issue as soon as it is worth someone else's attention.
 
 | Item | Evidence |
 |---|---|
+| Engineering records | 3 ADRs, the system-impact register and the bug-case catalog. `docs/adr/README.md` indexes the decisions. |
 | Memory vault | `Obsidian-StatusHub/` with three notes, indexed by `Home.md`. |
 | Quality gates run and acted on | `/simplify` (4 agents) → `/code-review` (2 axes) → `/scrutinize`. Each found real defects and each finding was fixed or filed. See commits `8fde171`, `59f2ecb`, and the scrutinize commit. |
 | Page cost cut 25× | The history strip became one SVG. Measured on a production build: 365-day view 4.12 MB / 13.2 s → 159 KB / 0.52 s; 90-day view 1.05 MB / 5.0 s → 112 KB / 0.53 s. |
