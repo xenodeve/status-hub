@@ -166,7 +166,12 @@ export default async function Page({
         <LiveRefresh />
       </header>
 
-      <div className={`mb-8 rounded-lg px-4 py-3 text-sm ring-1 ${STYLE[overall].banner}`}>
+      {/*
+        The page re-renders itself when the collector writes, so this line can
+        change while someone is reading it. role="status" is what makes a
+        screen reader announce the change instead of silently replacing it.
+      */}
+      <div role="status" className={`mb-8 rounded-lg px-4 py-3 text-sm ring-1 ${STYLE[overall].banner}`}>
         {STYLE[overall].headline}
       </div>
 
@@ -196,6 +201,9 @@ export default async function Page({
           <a
             key={r.days}
             href={`/?range=${r.days}`}
+            // Which range is selected was signalled by colour alone, which a
+            // screen reader cannot report and a colour-blind reader may not see.
+            aria-current={r.days === days ? "page" : undefined}
             className={r.days === days ? "text-neutral-100" : "text-neutral-500 hover:text-neutral-300"}
           >
             {r.label}
