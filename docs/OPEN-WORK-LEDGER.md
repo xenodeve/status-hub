@@ -12,4 +12,4 @@ is read as current.
 | Implement Status Hub per the spec | `docs/superpowers/specs/2026-08-18-status-hub-design.md` | not started | file issues from the spec, then TDD |
 | `openCode` source is unresolved | spec §14 | **parked — needs the developer** | `status.opencode.de` is a German public-sector platform, not `opencode.ai`. Watch the German one, probe `opencode.ai` over plain HTTP, or drop it |
 | 9arm API surface unconfirmed | spec §6 | open | the reference implementation calls the Anthropic Messages API; confirm whether the OpenAI surface also works before writing the adapter |
-| `.claude/t4.json` `verify` is empty | `.claude/t4.json` | open | arm it with `bun run verify` once `package.json` exists — an empty verify means the local ship gate is off |
+| ~~`.claude/t4.json` `verify` is empty~~ | `.claude/t4.json` | **done** | armed with `bun run verify`; measured green (lint + typecheck + test + build) |
