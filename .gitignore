@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+
+# build output
+.next/
+out/
+dist/
+build/
+
+# environment — never commit a secret
+.env
+.env.*
+!.env.example
+
+# platform
+.vercel
+.supabase/
+supabase/.temp/
+supabase/.branches/
+
+# research + tooling cache (reference material, not source)
+.firecrawl/
+.playwright-mcp/
+
+# test artifacts
+coverage/
+test-results/
+playwright-report/
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.log
