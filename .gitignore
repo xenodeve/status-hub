@@ -37,3 +37,6 @@ supabase/functions/*/_lib/
 
 # scratch for gh --body-file
 .issue-bodies/
+
+# typescript incremental build cache
+*.tsbuildinfo
