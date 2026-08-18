@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - run: bun test                     # <ORG>/<REPO> unit suite
+      - run: bun test                     # the lib/ unit suite
 
   build:
     runs-on: ubuntu-latest

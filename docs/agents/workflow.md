@@ -34,16 +34,20 @@ is not TDD for the change in front of you.
 ## Verifying
 
 ```bash
-bun run verify       # lint + typecheck + test + build — the fast gate, runs before merge
-bun run test:e2e     # Playwright — the slow suite, CI only
+bun run verify          # lint + typecheck + test + build — the fast gate, runs before merge
+bun run sync:collector  # regenerate the collector's copy of lib/ before deploying
 ```
+
+There is no end-to-end suite yet. Until there is, a frontend change is verified by
+opening the page in a browser and looking at it — which is how the first render's
+light-on-light bug was caught. Do not claim a change is verified without doing it.
 
 `bun run verify` is armed in `.claude/t4.json`; the hook runs it itself before `gh pr merge` and
 blocks on failure. Keep it fast, and keep it in sync with `.github/workflows/t4-verify.yml`.
 
-**Verify every frontend change end-to-end.** Unit tests cannot see real layout or hydration. Add an
-E2E case for each new page or interactive element — and for this project specifically, for each new
-status value, because the whole product is the difference between one colour and another.
+**Verify every frontend change end-to-end.** Unit tests cannot see real layout or hydration — for
+this project specifically, the whole product is the difference between one colour and another, and a
+test that never renders cannot tell them apart.
 
 ## Gates, and how to report them
 

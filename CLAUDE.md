@@ -77,7 +77,7 @@ Bun is the package manager — commit `bun.lock`, use `bunx`.
 bun install
 bun run dev          # Next.js dev server
 bun run verify       # lint + typecheck + test + build   (the fast gate)
-bun run test:e2e     # Playwright — the slow suite, CI only
+bun run sync:collector  # regenerate the collector's copy of lib/ before deploying
 ```
 
 `bun run verify` is the command `.claude/t4.json` arms as the local ship gate. Keep it fast
