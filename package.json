@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "bun test",
-    "verify": "bun run lint && bun run typecheck && bun test && bun run build"
+    "verify": "bun run lint && bun run typecheck && bun test && bun run build",
+    "sync:collector": "bun run scripts/sync-collector-lib.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
