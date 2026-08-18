@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildBars, effectiveStatus, overallStatus, type RollupRow } from "./view";
+import { buildBars, dayRange, effectiveStatus, overallStatus, type RollupRow } from "./view";
 
 const at = (iso: string) => new Date(iso);
 
@@ -34,12 +34,7 @@ describe("effectiveStatus — a page that stopped checking must not read green",
 
 describe("buildBars — absence of a row is the no-data signal", () => {
   const today = at("2026-08-18T00:00:00Z");
-  const rollup = (day: string, worst: RollupRow["worstStatus"]): RollupRow => ({
-    day,
-    worstStatus: worst,
-    checkCount: 288,
-    uptimePct: 100,
-  });
+  const rollup = (day: string, worst: RollupRow["worstStatus"]): RollupRow => ({ day, worstStatus: worst });
 
   test("one bar per day, oldest first", () => {
     const bars = buildBars([], 5, today);
@@ -90,5 +85,29 @@ describe("overallStatus — the banner at the top", () => {
 
   test("a stale component makes the banner stale rather than green", () => {
     expect(overallStatus(["operational", "stale"])).toBe("stale");
+  });
+});
+
+describe("dayRange — computed once per page, not once per component", () => {
+  test("oldest first, ending today", () => {
+    const keys = dayRange(3, new Date("2026-08-18T00:00:00Z"));
+    expect(keys).toEqual(["2026-08-16", "2026-08-17", "2026-08-18"]);
+  });
+
+  test("buildBars uses precomputed keys when given them", () => {
+    const keys = dayRange(2, new Date("2026-08-18T00:00:00Z"));
+    const bars = buildBars([{ day: "2026-08-18", worstStatus: "down" }], 2, new Date("2026-08-18T00:00:00Z"), keys);
+    expect(bars.map((b) => b.status)).toEqual([null, "down"]);
+  });
+});
+
+describe("overallStatus — ranked by the same severity the bars use", () => {
+  test("a real outage outranks anything we could not see", () => {
+    expect(overallStatus(["unknown", "stale", "misconfigured", "down"])).toBe("down");
+  });
+
+  test("stale outranks unknown but not a vendor problem", () => {
+    expect(overallStatus(["unknown", "stale"])).toBe("stale");
+    expect(overallStatus(["stale", "degraded"])).toBe("degraded");
   });
 });

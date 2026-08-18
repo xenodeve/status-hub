@@ -1,5 +1,11 @@
 import type { Status } from "../status";
 
+/** A parsed JSON object. Adapters receive `unknown` and narrow with `isJson`. */
+export type Json = Record<string, unknown>;
+
+export const isJson = (value: unknown): value is Json =>
+  Boolean(value) && typeof value === "object";
+
 /** One checkable unit under a source. See docs/agents/domain.md, "component". */
 export type ComponentReading = {
   /** Stable within the source. Never the display name — a rename must not orphan history. */

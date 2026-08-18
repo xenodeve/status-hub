@@ -12,8 +12,8 @@ import { readHealth, readModels, readReadiness } from "./_lib/adapters/litellm.t
 import { readStatuspage } from "./_lib/adapters/statuspage.ts";
 import type { ComponentReading, SourceReading } from "./_lib/adapters/types.ts";
 import { transition, type ComponentState } from "./_lib/collector.ts";
-import { addSample, emptyRollup, worst } from "./_lib/rollup.ts";
-import { classify, type Status } from "./_lib/status.ts";
+import { addSample, emptyRollup } from "./_lib/rollup.ts";
+import { classify, type CheckOutcome, type Status } from "./_lib/status.ts";
 
 const FETCH_TIMEOUT_MS = 10_000;
 
@@ -24,7 +24,11 @@ type Json = Record<string, unknown>;
  * the whole run with it, and the sources that were answering fine get no
  * reading at all for that cycle.
  */
-async function timedFetch(url: string, init: RequestInit = {}) {
+type FetchResult =
+  | { ok: true; status: number; body: string; latencyMs: number }
+  | { ok: false; timedOut: boolean; message: string; latencyMs: number };
+
+async function timedFetch(url: string, init: RequestInit = {}): Promise<FetchResult> {
   const started = Date.now();
   const abort = AbortSignal.timeout(FETCH_TIMEOUT_MS);
   try {
@@ -42,6 +46,19 @@ async function timedFetch(url: string, init: RequestInit = {}) {
   }
 }
 
+/**
+ * Every fetch result becomes a CheckOutcome so `classify` stays the only place
+ * that decides what a result means. Hand-rolling it per call site had already
+ * produced a disagreement: the same timeout read as `down` on one path and
+ * `unknown` on another.
+ */
+const outcomeOf = (result: FetchResult): CheckOutcome =>
+  result.ok
+    ? { kind: "http", status: result.status, latencyMs: result.latencyMs }
+    : result.timedOut
+      ? { kind: "timeout", latencyMs: result.latencyMs }
+      : { kind: "error", latencyMs: result.latencyMs, message: result.message };
+
 const parse = (body: string): unknown => {
   try {
     return JSON.parse(body);
@@ -50,9 +67,21 @@ const parse = (body: string): unknown => {
   }
 };
 
-/** A source we could not reach at all: grey, and never their fault. */
-const unreachable = (components: { key: string; name: string }[], detail: string): SourceReading => ({
-  components: components.map((c) => ({ ...c, status: "unknown" as Status, latencyMs: null, detail })),
+const DEFAULT_THRESHOLDS = { slowMs: 3_500 };
+const GATEWAY_THRESHOLDS = { slowMs: 1_500 };
+
+/** A source we could not reach. `classify` decides which kind of "no" it was. */
+const unreachable = (
+  components: { key: string; name: string }[],
+  outcome: CheckOutcome,
+  detail: string,
+): SourceReading => ({
+  components: components.map((c) => ({
+    ...c,
+    status: classify(outcome, DEFAULT_THRESHOLDS),
+    latencyMs: null,
+    detail,
+  })),
   incidents: [],
 });
 
@@ -61,7 +90,9 @@ async function readSource(source: { id: string; adapter: string; config: Json })
 
   if (source.adapter === "statuspage" || source.adapter === "gcp") {
     const result = await timedFetch(String(config.url));
-    if (!result.ok) return unreachable([{ key: source.id, name: source.id }], result.message);
+    if (!result.ok) {
+      return unreachable([{ key: source.id, name: source.id }], outcomeOf(result), result.message);
+    }
 
     const payload = parse(result.body);
     return source.adapter === "statuspage"
@@ -79,28 +110,36 @@ async function readSource(source: { id: string; adapter: string; config: Json })
 
     // The gateway itself needs no credential, so this reading always happens.
     const readiness = await timedFetch(`${base}${config.readinessPath}`);
-    const gateway: ComponentReading = readiness.ok
-      ? {
-          key: "gateway",
-          name: "API Gateway",
-          status: readiness.status === 200 ? readReadiness(parse(readiness.body)) : classify(
-            { kind: "http", status: readiness.status, latencyMs: readiness.latencyMs },
-            { slowMs: 1_500 },
-          ),
-          latencyMs: readiness.latencyMs,
-        }
-      : {
-          key: "gateway",
-          name: "API Gateway",
-          status: readiness.timedOut ? "down" : "unknown",
-          latencyMs: null,
-          detail: readiness.message,
-        };
+    const gateway: ComponentReading = {
+      key: "gateway",
+      name: "API Gateway",
+      // A 200 carries a body that says more than the status code does. Anything
+      // else, including a failed fetch, is classify's call.
+      status:
+        readiness.ok && readiness.status === 200
+          ? readReadiness(parse(readiness.body))
+          : classify(outcomeOf(readiness), GATEWAY_THRESHOLDS),
+      latencyMs: readiness.ok ? readiness.latencyMs : null,
+      detail: readiness.ok ? undefined : readiness.message,
+    };
 
     // No key means we report grey. It never means borrowing one: a fallback key
     // committed to a public repository is how the reference build leaked its own.
+    // `classify` has an outcome kind for exactly this case.
     if (!key) {
-      return { components: [{ ...gateway }], incidents: [] };
+      return {
+        components: [
+          gateway,
+          {
+            key: "models",
+            name: "Model listing",
+            status: classify({ kind: "no-credential" }, DEFAULT_THRESHOLDS),
+            latencyMs: null,
+            detail: "GATEWAY_9ARM_KEY is not set",
+          },
+        ],
+        incidents: [],
+      };
     }
 
     const auth = { headers: { "x-api-key": key, Authorization: `Bearer ${key}` } };
@@ -118,7 +157,15 @@ async function readSource(source: { id: string; adapter: string; config: Json })
 
     if (listing.status === 401 || listing.status === 403) {
       return {
-        components: [gateway, { key: "models", name: "Model listing", status: "misconfigured", latencyMs: null }],
+        components: [
+          gateway,
+          {
+            key: "models",
+            name: "Model listing",
+            status: classify(outcomeOf(listing), DEFAULT_THRESHOLDS),
+            latencyMs: null,
+          },
+        ],
         incidents: [],
       };
     }
@@ -129,10 +176,10 @@ async function readSource(source: { id: string; adapter: string; config: Json })
         ...readModels(parse(listing.body)).map((m) => ({
           key: m.key,
           name: m.name,
-          // Discovered, listed, and reachable enough to be listed — but not
-          // probed. Probing costs tokens on someone else's gateway and stays
-          // off until a human turns it on per model.
-          status: "operational" as Status,
+          // It appeared in a listing. That is not the same as having answered,
+          // and calling it operational would be exactly the false green this
+          // project exists to avoid. Grey until something actually probes it.
+          status: "unknown" as Status,
           latencyMs: null,
           detail: m.variant,
         })),
@@ -141,7 +188,11 @@ async function readSource(source: { id: string; adapter: string; config: Json })
     };
   }
 
-  return unreachable([{ key: source.id, name: source.id }], `no adapter for ${source.adapter}`);
+  return unreachable(
+    [{ key: source.id, name: source.id }],
+    { kind: "error", latencyMs: 0, message: "no adapter" },
+    `no adapter for ${source.adapter}`,
+  );
 }
 
 Deno.serve(async () => {
@@ -273,23 +324,29 @@ Deno.serve(async () => {
       const base = existingRollup
         ? {
             checkCount: existingRollup.check_count,
+            counts: {
+              operational: existingRollup.operational_count,
+              degraded: existingRollup.degraded_count,
+              down: existingRollup.down_count,
+              unreachable: existingRollup.unreachable_count,
+            },
             latencyBuckets: existingRollup.latency_buckets as Record<string, number>,
             worstStatus: existingRollup.worst_status as Status,
           }
         : emptyRollup();
 
+      // addSample is the only code that knows how a status contributes to a day.
       const next = addSample(base, { status: component.status, latencyMs: component.latencyMs });
-      const reachable = component.status === "operational" || component.status === "degraded" || component.status === "down";
 
       await db.from("daily_rollups").upsert({
         component_id: componentId,
         day: today,
         check_count: next.checkCount,
-        operational_count: (existingRollup?.operational_count ?? 0) + (component.status === "operational" ? 1 : 0),
-        degraded_count: (existingRollup?.degraded_count ?? 0) + (component.status === "degraded" ? 1 : 0),
-        down_count: (existingRollup?.down_count ?? 0) + (component.status === "down" ? 1 : 0),
-        unreachable_count: (existingRollup?.unreachable_count ?? 0) + (reachable ? 0 : 1),
-        worst_status: existingRollup ? worst(base.worstStatus, component.status) : component.status,
+        operational_count: next.counts.operational,
+        degraded_count: next.counts.degraded,
+        down_count: next.counts.down,
+        unreachable_count: next.counts.unreachable,
+        worst_status: next.worstStatus,
         latency_buckets: next.latencyBuckets,
       });
 

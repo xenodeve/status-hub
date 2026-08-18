@@ -70,3 +70,41 @@ describe("readGcp — robustness", () => {
     expect(reading.components[0]!.status).toBe("operational");
   });
 });
+
+describe("readGcp — the feed is the whole history, we are not", () => {
+  const target = { key: "gemini-api", name: "Gemini API", match: GEMINI };
+  const now = new Date("2026-08-18T00:00:00Z");
+  const incident = (end: string | null) => ({
+    id: `i-${end ?? "open"}`,
+    begin: "2026-01-01T00:00:00Z",
+    end,
+    external_desc: "Something",
+    status_impact: "SERVICE_DISRUPTION",
+    affected_products: [{ title: "Vertex Gemini API" }],
+  });
+
+  test("an incident closed years ago is not re-sent every five minutes", () => {
+    // incidents.json is the full historical feed. Carrying all of it means the
+    // collector rewrites rows that have not changed since 2024, on every run.
+    const reading = readGcp([incident("2024-03-01T00:00:00Z")], target, now);
+    expect(reading.incidents).toHaveLength(0);
+  });
+
+  test("an incident that just closed is still carried, so the close is recorded", () => {
+    // Dropping it the moment it ends would leave our copy open forever: we
+    // would never see the end we are waiting for.
+    const reading = readGcp([incident("2026-08-17T00:00:00Z")], target, now);
+    expect(reading.incidents).toHaveLength(1);
+    expect(reading.incidents[0]!.endedAt).toBe("2026-08-17T00:00:00Z");
+  });
+
+  test("an open incident is always carried, however old", () => {
+    const reading = readGcp([incident(null)], target, now);
+    expect(reading.incidents).toHaveLength(1);
+  });
+
+  test("the component status still reflects only open incidents", () => {
+    const reading = readGcp([incident("2026-08-17T00:00:00Z")], target, now);
+    expect(reading.components[0]!.status).toBe("operational");
+  });
+});
