@@ -9,7 +9,7 @@
 
 import { worst } from "../rollup";
 import type { Status } from "../status";
-import type { SourceReading, VendorIncident } from "./types";
+import { isJson, type Json, type SourceReading, type VendorIncident } from "./types";
 
 export type GcpTarget = {
   key: string;
@@ -25,10 +25,14 @@ const IMPACT: Record<string, Status> = {
   SERVICE_INFORMATION: "operational",
 };
 
-type Json = Record<string, unknown>;
-const isJson = (v: unknown): v is Json => Boolean(v) && typeof v === "object";
+/**
+ * How long after an incident closes we keep reporting it. Long enough that the
+ * close is always observed at a five-minute cadence; short enough that the
+ * feed's full history is not rewritten on every run.
+ */
+const CLOSED_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
-export function readGcp(payload: unknown, target: GcpTarget): SourceReading {
+export function readGcp(payload: unknown, target: GcpTarget, now = new Date()): SourceReading {
   // A component with no reading still renders — as grey. Returning no component
   // would draw as "no data", which is a different claim.
   if (!Array.isArray(payload)) {
@@ -46,6 +50,17 @@ export function readGcp(payload: unknown, target: GcpTarget): SourceReading {
 
   const open = mine.filter((i) => !i.end);
 
+  // The feed carries every incident Google has ever published for these
+  // products. Only what is open, or has just closed, is ours to record.
+  const current = mine.filter((i) => {
+    if (!i.end) return true;
+    const ended = new Date(String(i.end)).getTime();
+    // An end we cannot parse is not evidence the incident is old. Keep it and
+    // let the record show something odd, rather than dropping it silently.
+    if (Number.isNaN(ended)) return true;
+    return now.getTime() - ended < CLOSED_WINDOW_MS;
+  });
+
   const status = open.reduce<Status>(
     (acc, i) => worst(acc, IMPACT[String(i.status_impact)] ?? "unknown"),
     "operational",
@@ -53,7 +68,7 @@ export function readGcp(payload: unknown, target: GcpTarget): SourceReading {
 
   return {
     components: [{ key: target.key, name: target.name, status, latencyMs: null }],
-    incidents: mine.map((i): VendorIncident => ({
+    incidents: current.map((i): VendorIncident => ({
       key: String(i.id ?? ""),
       title: String(i.external_desc ?? "Incident"),
       detail: typeof i.status_impact === "string" ? i.status_impact : undefined,

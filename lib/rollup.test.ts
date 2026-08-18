@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { BUCKETS, addSample, emptyRollup, percentile, uptimePct, worst } from "./rollup";
+import { BUCKETS, addSample, dayStatus, emptyRollup, percentile, uptimePct, worst } from "./rollup";
+import type { Status } from "./status";
 
 describe("worst — a day is as bad as its worst check", () => {
   test("down beats degraded beats operational", () => {
@@ -72,5 +73,77 @@ describe("percentile — approximate, from the histogram", () => {
 
   test("no latency samples means no percentile to report", () => {
     expect(percentile(emptyRollup(), 50)).toBeNull();
+  });
+});
+
+describe("addSample — the counters live here, not in the caller", () => {
+  test("each status increments exactly one counter", () => {
+    let r = emptyRollup();
+    r = addSample(r, { status: "operational", latencyMs: 10 });
+    r = addSample(r, { status: "degraded", latencyMs: 10 });
+    r = addSample(r, { status: "down", latencyMs: null });
+    expect(r.counts).toEqual({ operational: 1, degraded: 1, down: 1, unreachable: 0 });
+  });
+
+  test("our own failures land in unreachable, not against the vendor", () => {
+    // Counting `unknown` as downtime would blame a vendor for our network.
+    let r = emptyRollup();
+    for (const status of ["unknown", "misconfigured"] as Status[]) {
+      r = addSample(r, { status, latencyMs: null });
+    }
+    expect(r.counts.unreachable).toBe(2);
+    expect(r.counts.down).toBe(0);
+  });
+
+  test("the counters feed uptimePct directly", () => {
+    let r = emptyRollup();
+    for (let i = 0; i < 9; i++) r = addSample(r, { status: "operational", latencyMs: 10 });
+    r = addSample(r, { status: "down", latencyMs: null });
+    expect(uptimePct(r.counts)).toBe(90);
+  });
+
+  test("a day that only ever failed on our side has no uptime figure", () => {
+    let r = emptyRollup();
+    r = addSample(r, { status: "unknown", latencyMs: null });
+    expect(uptimePct(r.counts)).toBeNull();
+  });
+
+  test("an empty rollup starts operational, because that is the identity of worst", () => {
+    expect(emptyRollup().worstStatus).toBe("operational");
+    expect(addSample(emptyRollup(), { status: "down", latencyMs: 1 }).worstStatus).toBe("down");
+  });
+});
+
+describe("dayStatus — a day is graded on its uptime, not its worst moment", () => {
+  const counts = (operational: number, degraded: number, down: number) => ({
+    operational,
+    degraded,
+    down,
+    unreachable: 0,
+  });
+
+  test("one bad check out of 288 does not paint the day red", () => {
+    // 99.65 % uptime. Grading this as an outage makes a transient blip
+    // indistinguishable from a real one when you look back at the bar.
+    expect(dayStatus(counts(287, 0, 1), "down")).toBe("operational");
+  });
+
+  test("98 % is the boundary and it is inclusive", () => {
+    expect(dayStatus(counts(98, 0, 2), "down")).toBe("operational");
+    expect(dayStatus(counts(97, 0, 3), "down")).toBe("degraded");
+  });
+
+  test("below 80 % is an outage", () => {
+    expect(dayStatus(counts(79, 0, 21), "down")).toBe("down");
+    expect(dayStatus(counts(80, 0, 20), "down")).toBe("degraded");
+  });
+
+  test("degraded checks count as up, so a slow day is not an outage", () => {
+    expect(dayStatus(counts(0, 100, 0), "degraded")).toBe("operational");
+  });
+
+  test("a day we never reached them keeps the worst reading, which is grey", () => {
+    expect(dayStatus(counts(0, 0, 0), "unknown")).toBe("unknown");
+    expect(dayStatus(counts(0, 0, 0), "misconfigured")).toBe("misconfigured");
   });
 });

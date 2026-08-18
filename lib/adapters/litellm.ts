@@ -12,11 +12,7 @@
 
 import { familyOf } from "../model-name";
 import type { Status } from "../status";
-import type { ComponentReading } from "./types";
-
-type Json = Record<string, unknown>;
-
-const isJson = (v: unknown): v is Json => Boolean(v) && typeof v === "object";
+import { isJson, type ComponentReading, type Json } from "./types";
 
 /** `{"status":"healthy","db":"connected"}` */
 export function readReadiness(payload: unknown): Status {

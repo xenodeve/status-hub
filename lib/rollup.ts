@@ -2,6 +2,9 @@
  * One row per component per day, updated in place. This replaces storing a row
  * per check — at ten components that would reach Supabase's 500 MB free-tier
  * ceiling in about three months. See docs/memory/platform-limits.md.
+ *
+ * Everything a daily row holds is accumulated here, by `addSample`, so there is
+ * exactly one place that knows how a status contributes to a day.
  */
 
 import type { Status } from "./status";
@@ -11,10 +14,20 @@ export const BUCKETS = [100, 250, 500, 1_000, 3_000, Infinity] as const;
 
 export type LatencyBuckets = Record<string, number>;
 
+/** Checks that reached them at all — the denominator uptime is a fraction of. */
+export type Counts = {
+  operational: number;
+  degraded: number;
+  down: number;
+  /** `unknown` + `misconfigured`: our failures, excluded from their uptime. */
+  unreachable: number;
+};
+
 export type Rollup = {
   checkCount: number;
+  counts: Counts;
   latencyBuckets: LatencyBuckets;
-  worstStatus: Status | null;
+  worstStatus: Status;
 };
 
 export type Sample = { status: Status; latencyMs: number | null };
@@ -23,7 +36,7 @@ export type Sample = { status: Status; latencyMs: number | null };
  * How bad each status is for the day's colour. Our own failures rank *below* a
  * real outage: one flaky check must never hide a genuine incident behind grey.
  */
-const SEVERITY: Record<Status, number> = {
+export const SEVERITY: Record<Status, number> = {
   operational: 0,
   unknown: 1,
   misconfigured: 2,
@@ -38,8 +51,23 @@ export function worst(a: Status, b: Status): Status {
 export function emptyRollup(): Rollup {
   const latencyBuckets: LatencyBuckets = {};
   for (const bound of BUCKETS) latencyBuckets[String(bound)] = 0;
-  return { checkCount: 0, latencyBuckets, worstStatus: null };
+  // `operational` is the identity of `worst`, so it seeds the day without
+  // needing a null case that the NOT NULL column could never store anyway.
+  return {
+    checkCount: 0,
+    counts: { operational: 0, degraded: 0, down: 0, unreachable: 0 },
+    latencyBuckets,
+    worstStatus: "operational",
+  };
 }
+
+const COUNTED: Record<Status, keyof Counts> = {
+  operational: "operational",
+  degraded: "degraded",
+  down: "down",
+  unknown: "unreachable",
+  misconfigured: "unreachable",
+};
 
 export function addSample(rollup: Rollup, sample: Sample): Rollup {
   const latencyBuckets = { ...rollup.latencyBuckets };
@@ -51,17 +79,34 @@ export function addSample(rollup: Rollup, sample: Sample): Rollup {
     latencyBuckets[String(bound)] += 1;
   }
 
+  const bucket = COUNTED[sample.status];
   return {
     checkCount: rollup.checkCount + 1,
+    counts: { ...rollup.counts, [bucket]: rollup.counts[bucket] + 1 },
     latencyBuckets,
-    worstStatus: rollup.worstStatus === null ? sample.status : worst(rollup.worstStatus, sample.status),
+    worstStatus: worst(rollup.worstStatus, sample.status),
   };
 }
 
-/** Checks that reached them at all — the denominator uptime is a fraction of. */
-export type ReachCounts = { operational: number; degraded: number; down: number };
+/**
+ * The colour a finished day gets.
+ *
+ * Not the day's worst moment: one failed check out of 288 is 99.65 % uptime,
+ * and painting that day red makes a transient blip indistinguishable from an
+ * outage. The thresholds are the ones the design fixes — 98 % and 80 %.
+ *
+ * A day where nothing ever reached them has no uptime to grade, so it keeps
+ * whatever the worst reading was, which will be grey.
+ */
+export function dayStatus(counts: Counts, worstStatus: Status): Status {
+  const pct = uptimePct(counts);
+  if (pct === null) return worstStatus;
+  if (pct >= 98) return "operational";
+  if (pct >= 80) return "degraded";
+  return "down";
+}
 
-export function uptimePct(counts: ReachCounts): number | null {
+export function uptimePct(counts: Pick<Counts, "operational" | "degraded" | "down">): number | null {
   const reached = counts.operational + counts.degraded + counts.down;
   if (reached === 0) return null;
 

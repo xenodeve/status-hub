@@ -4,7 +4,7 @@
  */
 
 import type { Status } from "../status";
-import { EMPTY_READING, type SourceReading, type VendorIncident } from "./types";
+import { EMPTY_READING, isJson, type Json, type SourceReading, type VendorIncident } from "./types";
 
 const COMPONENT_STATUS: Record<string, Status> = {
   operational: "operational",
@@ -13,6 +13,10 @@ const COMPONENT_STATUS: Record<string, Status> = {
   major_outage: "down",
   under_maintenance: "degraded",
 };
+
+/** A row we can key on. Anything without a stable id cannot own history. */
+const hasStringId = (value: unknown): value is Json =>
+  isJson(value) && typeof value.id === "string";
 
 export function readStatuspage(payload: unknown): SourceReading {
   if (!payload || typeof payload !== "object") return EMPTY_READING;
@@ -23,9 +27,7 @@ export function readStatuspage(payload: unknown): SourceReading {
 
   return {
     components: components
-      .filter((c): c is Record<string, unknown> =>
-        Boolean(c) && typeof c === "object" && typeof (c as { id?: unknown }).id === "string",
-      )
+      .filter(hasStringId)
       // A row with `group: true` is a heading over other rows, not a thing that
       // can be up or down.
       .filter((c) => c.group !== true)
@@ -42,9 +44,7 @@ export function readStatuspage(payload: unknown): SourceReading {
       })),
 
     incidents: incidents
-      .filter((i): i is Record<string, unknown> =>
-        Boolean(i) && typeof i === "object" && typeof (i as { id?: unknown }).id === "string",
-      )
+      .filter(hasStringId)
       .map((i): VendorIncident => ({
         key: String(i.id),
         title: String(i.name ?? "Incident"),

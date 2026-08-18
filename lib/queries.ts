@@ -1,9 +1,22 @@
-import { buildBars, effectiveStatus, type Bar, type DisplayStatus } from "./view";
+import { dayStatus, uptimePct } from "./rollup";
+import { totalCounts } from "./totals";
 import { createReadClient } from "./supabase";
 import type { Status } from "./status";
+import { buildBars, dayRange, effectiveStatus, type Bar, type DisplayStatus, type RollupRow } from "./view";
 
-/** How long a component may go unchecked before the page calls it stale. */
-export const MAX_GAP_MS = 5 * 60 * 1000;
+/**
+ * How long a component may go unchecked before the page calls it stale.
+ *
+ * This must be comfortably larger than the collector cadence, not equal to it.
+ * At five minutes — the same as the cron period — every component went stale
+ * in the seconds before each run and recovered when it finished, so a healthy
+ * system displayed "not currently checking" once every cycle. Measured: the
+ * whole board sat 288 s old against a 300 s threshold.
+ *
+ * Two missed cycles plus the run time is the honest bar for "something is
+ * wrong", and that is what this is.
+ */
+export const MAX_GAP_MS = 12 * 60 * 1000;
 
 export type ComponentView = {
   id: number;
@@ -33,28 +46,55 @@ export type Board = {
 
 type ComponentRow = {
   id: number;
-  key: string;
   name: string;
   variant: string | null;
-  retired_at: string | null;
   sources: { name: string } | null;
   component_state: { status: Status; latency_ms: number | null; last_checked_at: string } | null;
 };
 
+type RollupDbRow = {
+  component_id: number;
+  day: string;
+  worst_status: Status;
+  operational_count: number;
+  degraded_count: number;
+  down_count: number;
+};
+
+type IncidentDbRow = {
+  id: number;
+  title: string;
+  origin: string;
+  severity: string;
+  started_at: string;
+  ended_at: string | null;
+  components: { name: string } | null;
+};
+
 export async function loadBoard(days: number, now = new Date()): Promise<Board> {
   const db = createReadClient();
+  const keys = dayRange(days, now);
+  const sinceDay = keys[0]!;
 
-  const since = new Date(now);
-  since.setUTCDate(since.getUTCDate() - (days - 1));
-  const sinceDay = since.toISOString().slice(0, 10);
+  // Components first: their ids scope the rollup query, so a retired component's
+  // permanent history is never transferred just to be discarded.
+  const { data: componentData } = await db
+    .from("components")
+    .select("id, name, variant, sources(name), component_state(status, latency_ms, last_checked_at)")
+    .is("retired_at", null)
+    .order("id");
 
-  const [components, rollups, incidents] = await Promise.all([
-    db
-      .from("components")
-      .select("id, key, name, variant, retired_at, sources(name), component_state(status, latency_ms, last_checked_at)")
-      .is("retired_at", null)
-      .order("id"),
-    db.from("daily_rollups").select("component_id, day, worst_status, check_count").gte("day", sinceDay),
+  const components = (componentData ?? []) as unknown as ComponentRow[];
+  const ids = components.map((c) => c.id);
+
+  const [rollups, incidents] = await Promise.all([
+    ids.length
+      ? db
+          .from("daily_rollups")
+          .select("component_id, day, worst_status, operational_count, degraded_count, down_count")
+          .in("component_id", ids)
+          .gte("day", sinceDay)
+      : Promise.resolve({ data: [] as RollupDbRow[] }),
     db
       .from("incidents")
       .select("id, title, origin, severity, started_at, ended_at, components(name)")
@@ -62,16 +102,31 @@ export async function loadBoard(days: number, now = new Date()): Promise<Board> 
       .limit(20),
   ]);
 
-  const rollupsByComponent = new Map<number, { day: string; worstStatus: Status; checkCount: number; uptimePct: null }[]>();
-  for (const r of rollups.data ?? []) {
-    const list = rollupsByComponent.get(r.component_id) ?? [];
-    list.push({ day: r.day, worstStatus: r.worst_status, checkCount: r.check_count, uptimePct: null });
-    rollupsByComponent.set(r.component_id, list);
+  const byComponent = new Map<number, RollupDbRow[]>();
+  for (const row of (rollups.data ?? []) as unknown as RollupDbRow[]) {
+    const list = byComponent.get(row.component_id);
+    if (list) list.push(row);
+    else byComponent.set(row.component_id, [row]);
   }
 
   return {
-    components: ((components.data ?? []) as unknown as ComponentRow[]).map((c) => {
+    components: components.map((c) => {
       const state = c.component_state;
+      const rows = byComponent.get(c.id) ?? [];
+
+      const history: RollupRow[] = rows.map((r) => ({
+        day: r.day,
+        worstStatus: dayStatus(
+          {
+            operational: r.operational_count,
+            degraded: r.degraded_count,
+            down: r.down_count,
+            unreachable: 0,
+          },
+          r.worst_status,
+        ),
+      }));
+
       return {
         id: c.id,
         sourceName: c.sources?.name ?? "",
@@ -81,18 +136,20 @@ export async function loadBoard(days: number, now = new Date()): Promise<Board> 
           ? effectiveStatus({ status: state.status, lastCheckedAt: state.last_checked_at }, now, MAX_GAP_MS)
           : "stale",
         latencyMs: state?.latency_ms ?? null,
-        uptimePct: null,
-        bars: buildBars(rollupsByComponent.get(c.id) ?? [], days, now),
+        // Over the whole visible range, from the counters the collector
+        // accumulated — the arithmetic the rollup module defines.
+        uptimePct: uptimePct(totalCounts(rows)),
+        bars: buildBars(history, days, now, keys),
       };
     }),
-    incidents: ((incidents.data ?? []) as unknown as Array<Record<string, unknown>>).map((i) => ({
-      id: Number(i.id),
-      componentName: String((i.components as { name?: string } | null)?.name ?? ""),
-      title: String(i.title),
-      origin: String(i.origin),
-      severity: String(i.severity),
-      startedAt: String(i.started_at),
-      endedAt: (i.ended_at as string | null) ?? null,
+    incidents: ((incidents.data ?? []) as unknown as IncidentDbRow[]).map((i) => ({
+      id: i.id,
+      componentName: i.components?.name ?? "",
+      title: i.title,
+      origin: i.origin,
+      severity: i.severity,
+      startedAt: i.started_at,
+      endedAt: i.ended_at,
     })),
   };
 }
