@@ -44,8 +44,8 @@ its score table rather than recollection.
 ## Session start
 
 1. `karpathy-guidelines` — once, so every edit this session is surgical and goal-verified.
-2. `t4-agent-memory` — read `docs/memory/Home.md`, then `docs/OPEN-WORK-LEDGER.md`, then the
-   issue you are picking up.
+2. `t4-agent-memory` — read `Obsidian-StatusHub/Home.md`, then `docs/OPEN-WORK-LEDGER.md`, then
+   the issue you are picking up. Skim the index and open one slice; do not preload the graph.
 3. Route the task through `using-t4`.
 4. **At session end** — report every rule that did not hold as a `skill-feedback` issue on
    `xenodeve/xeno-skills`. Comment on the existing issue for that rule; do not open a second.
@@ -53,6 +53,7 @@ its score table rather than recollection.
 ## Repo layout
 
 ```
+Obsidian-StatusHub/        the team memory vault — Home.md is the index
 docs/
   agents/                  how this repo is operated (read these before changing process)
     domain.md              THE GLOSSARY — read before writing any code
@@ -62,7 +63,6 @@ docs/
     skill-consumer-rules.md  how the skills read CONTEXT.md and the ADRs
   adr/                     architecture decision records
   superpowers/specs/       design specs
-  memory/                  durable agent memory vault
   OPEN-WORK-LEDGER.md      what is open right now
 DONE.md                    ship log
 .claude/                   hooks + the T4 marker
