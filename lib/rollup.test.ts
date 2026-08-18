@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { BUCKETS, addSample, emptyRollup, percentile, uptimePct, worst } from "./rollup";
+import { BUCKETS, addSample, dayStatus, emptyRollup, percentile, uptimePct, worst } from "./rollup";
 import type { Status } from "./status";
 
 describe("worst — a day is as bad as its worst check", () => {
@@ -111,5 +111,39 @@ describe("addSample — the counters live here, not in the caller", () => {
   test("an empty rollup starts operational, because that is the identity of worst", () => {
     expect(emptyRollup().worstStatus).toBe("operational");
     expect(addSample(emptyRollup(), { status: "down", latencyMs: 1 }).worstStatus).toBe("down");
+  });
+});
+
+describe("dayStatus — a day is graded on its uptime, not its worst moment", () => {
+  const counts = (operational: number, degraded: number, down: number) => ({
+    operational,
+    degraded,
+    down,
+    unreachable: 0,
+  });
+
+  test("one bad check out of 288 does not paint the day red", () => {
+    // 99.65 % uptime. Grading this as an outage makes a transient blip
+    // indistinguishable from a real one when you look back at the bar.
+    expect(dayStatus(counts(287, 0, 1), "down")).toBe("operational");
+  });
+
+  test("98 % is the boundary and it is inclusive", () => {
+    expect(dayStatus(counts(98, 0, 2), "down")).toBe("operational");
+    expect(dayStatus(counts(97, 0, 3), "down")).toBe("degraded");
+  });
+
+  test("below 80 % is an outage", () => {
+    expect(dayStatus(counts(79, 0, 21), "down")).toBe("down");
+    expect(dayStatus(counts(80, 0, 20), "down")).toBe("degraded");
+  });
+
+  test("degraded checks count as up, so a slow day is not an outage", () => {
+    expect(dayStatus(counts(0, 100, 0), "degraded")).toBe("operational");
+  });
+
+  test("a day we never reached them keeps the worst reading, which is grey", () => {
+    expect(dayStatus(counts(0, 0, 0), "unknown")).toBe("unknown");
+    expect(dayStatus(counts(0, 0, 0), "misconfigured")).toBe("misconfigured");
   });
 });

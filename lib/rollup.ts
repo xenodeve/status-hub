@@ -88,6 +88,24 @@ export function addSample(rollup: Rollup, sample: Sample): Rollup {
   };
 }
 
+/**
+ * The colour a finished day gets.
+ *
+ * Not the day's worst moment: one failed check out of 288 is 99.65 % uptime,
+ * and painting that day red makes a transient blip indistinguishable from an
+ * outage. The thresholds are the ones the design fixes — 98 % and 80 %.
+ *
+ * A day where nothing ever reached them has no uptime to grade, so it keeps
+ * whatever the worst reading was, which will be grey.
+ */
+export function dayStatus(counts: Counts, worstStatus: Status): Status {
+  const pct = uptimePct(counts);
+  if (pct === null) return worstStatus;
+  if (pct >= 98) return "operational";
+  if (pct >= 80) return "degraded";
+  return "down";
+}
+
 export function uptimePct(counts: Pick<Counts, "operational" | "degraded" | "down">): number | null {
   const reached = counts.operational + counts.degraded + counts.down;
   if (reached === 0) return null;

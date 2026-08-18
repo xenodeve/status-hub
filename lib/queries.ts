@@ -1,11 +1,22 @@
-import { uptimePct } from "./rollup";
+import { dayStatus, uptimePct } from "./rollup";
 import { totalCounts } from "./totals";
 import { createReadClient } from "./supabase";
 import type { Status } from "./status";
 import { buildBars, dayRange, effectiveStatus, type Bar, type DisplayStatus, type RollupRow } from "./view";
 
-/** How long a component may go unchecked before the page calls it stale. */
-export const MAX_GAP_MS = 5 * 60 * 1000;
+/**
+ * How long a component may go unchecked before the page calls it stale.
+ *
+ * This must be comfortably larger than the collector cadence, not equal to it.
+ * At five minutes — the same as the cron period — every component went stale
+ * in the seconds before each run and recovered when it finished, so a healthy
+ * system displayed "not currently checking" once every cycle. Measured: the
+ * whole board sat 288 s old against a 300 s threshold.
+ *
+ * Two missed cycles plus the run time is the honest bar for "something is
+ * wrong", and that is what this is.
+ */
+export const MAX_GAP_MS = 12 * 60 * 1000;
 
 export type ComponentView = {
   id: number;
@@ -103,7 +114,18 @@ export async function loadBoard(days: number, now = new Date()): Promise<Board> 
       const state = c.component_state;
       const rows = byComponent.get(c.id) ?? [];
 
-      const history: RollupRow[] = rows.map((r) => ({ day: r.day, worstStatus: r.worst_status }));
+      const history: RollupRow[] = rows.map((r) => ({
+        day: r.day,
+        worstStatus: dayStatus(
+          {
+            operational: r.operational_count,
+            degraded: r.degraded_count,
+            down: r.down_count,
+            unreachable: 0,
+          },
+          r.worst_status,
+        ),
+      }));
 
       return {
         id: c.id,
